@@ -45,5 +45,6 @@ async function iniciarBot() {
     });
 }
 
-iniciarBot();
+iniciarBot(); 
+
 
