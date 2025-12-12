@@ -1,33 +1,24 @@
-const {
-    default: makeWASocket,
-    useMultiFileAuthState,
-    fetchLatestBaileysVersion
-} = require("@whiskeysockets/baileys")
+sock.ev.on("connection.update", async (update) => {
+    const { qr, connection } = update;
 
-async function iniciarBot() {
+    if (qr) {
+        console.log("🔥 Se generó un nuevo QR. Conviértelo en imagen aquí:");
+        const qrImageUrl = await qrcode.toDataURL(qr);
+        console.log(qrImageUrl);
+    }
 
-    // Carga/crea la carpeta de sesión donde se guarda el login
-    const { state, saveCreds } = await useMultiFileAuthState("./session");
+    if (connection === "open") {
+        console.log("✅ Bot conectado correctamente a WhatsApp.");
+    }
 
-    // Obtiene la versión recomendada de WhatsApp Web
-    const { version } = await fetchLatestBaileysVersion();
+    if (connection === "close") {
+        console.log("❌ Conexión cerrada. Intentando reconectar...");
+        iniciarBot();
+    }
+});
 
-    const sock = makeWASocket({
-        version,
-        printQRInTerminal: true, // Muestra el QR en la terminal
-        auth: state
-    });
+// Mantener el proceso vivo en Railway
+setInterval(() => {
+    console.log("⏳ Bot activo...");
+}, 10000);
 
-    // Guarda credenciales cada vez que cambien
-    sock.ev.on("creds.update", saveCreds);
-
-    // Evento básico de mensajes
-    sock.ev.on("messages.upsert", ({ messages }) => {
-        const m = messages[0];
-        if (!m.message) return;
-        console.log("📩 Mensaje recibido:", m);
-    });
-
-}
-
-iniciarBot();
