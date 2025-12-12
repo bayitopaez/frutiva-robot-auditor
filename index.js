@@ -1,48 +1,33 @@
-import makeWASocket, {
+const {
+    default: makeWASocket,
     useMultiFileAuthState,
     fetchLatestBaileysVersion
-} from "@whiskeysockets/baileys";
-
-import qrcode from "qrcode";
+} = require("@whiskeysockets/baileys")
 
 async function iniciarBot() {
+
+    // Carga/crea la carpeta de sesión donde se guarda el login
     const { state, saveCreds } = await useMultiFileAuthState("./session");
+
+    // Obtiene la versión recomendada de WhatsApp Web
     const { version } = await fetchLatestBaileysVersion();
 
     const sock = makeWASocket({
         version,
-        auth: state,
+        printQRInTerminal: true, // Muestra el QR en la terminal
+        auth: state
     });
 
-    // Guardar credenciales
+    // Guarda credenciales cada vez que cambien
     sock.ev.on("creds.update", saveCreds);
 
-    // ESCUCHAR EVENTOS DE CONEXIÓN
-    sock.ev.on("connection.update", async (update) => {
-        const { qr, connection } = update;
-
-        if (qr) {
-            console.log("🔥 QR GENERADO — COPIA ESTA URL Y ÁBRELA EN TU NAVEGADOR PARA ESCANEAR:");
-            const qrImageURL = await qrcode.toDataURL(qr);
-            console.log(qrImageURL);
-        }
-
-        if (connection === "open") {
-            console.log("✅ Bot conectado correctamente a WhatsApp.");
-        }
-
-        if (connection === "close") {
-            console.log("❌ Conexión cerrada. Intentando reconectar...");
-            iniciarBot();
-        }
+    // Evento básico de mensajes
+    sock.ev.on("messages.upsert", ({ messages }) => {
+        const m = messages[0];
+        if (!m.message) return;
+        console.log("📩 Mensaje recibido:", m);
     });
 
-    // Mantener vivo el proceso en Railway
-    setInterval(() => {
-        console.log("⏳ Bot activo en Railway...");
-    }, 10000);
 }
 
 iniciarBot();
-
-
