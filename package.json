@@ -2,10 +2,7 @@
   "name": "frutiva-robot-auditor",
   "version": "1.0.0",
   "main": "index.js",
-  "type": "commonjs",
-  "scripts": {
-    "start": "node index.js"
-  },
+  "type": "module",
   "dependencies": {
     "@whiskeysockets/baileys": "^6.7.1",
     "pino": "^8.17.0",
@@ -14,4 +11,3 @@
     "axios": "^1.6.5"
   }
 }
-
