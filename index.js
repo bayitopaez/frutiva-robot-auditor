@@ -1,24 +1,48 @@
-sock.ev.on("connection.update", async (update) => {
-    const { qr, connection } = update;
+import makeWASocket, {
+    useMultiFileAuthState,
+    fetchLatestBaileysVersion
+} from "@whiskeysockets/baileys";
 
-    if (qr) {
-        console.log("🔥 Se generó un nuevo QR. Conviértelo en imagen aquí:");
-        const qrImageUrl = await qrcode.toDataURL(qr);
-        console.log(qrImageUrl);
-    }
+import qrcode from "qrcode";
 
-    if (connection === "open") {
-        console.log("✅ Bot conectado correctamente a WhatsApp.");
-    }
+async function iniciarBot() {
+    const { state, saveCreds } = await useMultiFileAuthState("./session");
+    const { version } = await fetchLatestBaileysVersion();
 
-    if (connection === "close") {
-        console.log("❌ Conexión cerrada. Intentando reconectar...");
-        iniciarBot();
-    }
-});
+    const sock = makeWASocket({
+        version,
+        auth: state,
+    });
 
-// Mantener el proceso vivo en Railway
-setInterval(() => {
-    console.log("⏳ Bot activo...");
-}, 10000);
+    // Guardar credenciales
+    sock.ev.on("creds.update", saveCreds);
+
+    // ESCUCHAR EVENTOS DE CONEXIÓN
+    sock.ev.on("connection.update", async (update) => {
+        const { qr, connection } = update;
+
+        if (qr) {
+            console.log("🔥 QR GENERADO — COPIA ESTA URL Y ÁBRELA EN TU NAVEGADOR PARA ESCANEAR:");
+            const qrImageURL = await qrcode.toDataURL(qr);
+            console.log(qrImageURL);
+        }
+
+        if (connection === "open") {
+            console.log("✅ Bot conectado correctamente a WhatsApp.");
+        }
+
+        if (connection === "close") {
+            console.log("❌ Conexión cerrada. Intentando reconectar...");
+            iniciarBot();
+        }
+    });
+
+    // Mantener vivo el proceso en Railway
+    setInterval(() => {
+        console.log("⏳ Bot activo en Railway...");
+    }, 10000);
+}
+
+iniciarBot();
+
 
