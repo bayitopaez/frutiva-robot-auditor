@@ -1,33 +1,39 @@
 const {
     default: makeWASocket,
     useMultiFileAuthState,
-    fetchLatestBaileysVersion
-} = require("@whiskeysockets/baileys")
+    fetchLatestBaileysVersion,
+    DisconnectReason
+} = require("@whiskeysockets/baileys");
 
-async function iniciarBot() {
-
-    // Carga/crea la carpeta de sesión donde se guarda el login
-    const { state, saveCreds } = await useMultiFileAuthState("./session");
-
-    // Obtiene la versión recomendada de WhatsApp Web
+async function iniciar() {
+    const { state, saveCreds } = await useMultiFileAuthState('./session');
     const { version } = await fetchLatestBaileysVersion();
 
     const sock = makeWASocket({
-        version,
-        printQRInTerminal: true, // Muestra el QR en la terminal
-        auth: state
+        printQRInTerminal: true,
+        auth: state,
+        version
     });
 
-    // Guarda credenciales cada vez que cambien
-    sock.ev.on("creds.update", saveCreds);
+    sock.ev.on('creds.update', saveCreds);
 
-    // Evento básico de mensajes
-    sock.ev.on("messages.upsert", ({ messages }) => {
-        const m = messages[0];
-        if (!m.message) return;
-        console.log("📩 Mensaje recibido:", m);
+    sock.ev.on('messages.upsert', async (msg) => {
+        try {
+            const m = msg.messages[0];
+            if (!m.message) return;
+
+            const from = m.key.remoteJid;
+            const text = m.message.conversation || m.message.extendedTextMessage?.text || "";
+
+            console.log("MENSAJE RECIBIDO:", text);
+
+            await sock.sendMessage(from, { text: "Hola 👋, soy el robot auditor de Frutiva." });
+
+        } catch (e) {
+            console.error("ERROR:", e);
+        }
     });
-
 }
 
-iniciarBot();
+iniciar();
+
