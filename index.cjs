@@ -1,39 +1,51 @@
 const {
     default: makeWASocket,
     useMultiFileAuthState,
-    fetchLatestBaileysVersion,
     DisconnectReason
 } = require("@whiskeysockets/baileys");
 
-async function iniciar() {
-    const { state, saveCreds } = await useMultiFileAuthState('./session');
-    const { version } = await fetchLatestBaileysVersion();
+async function startBot() {
+    const { state, saveCreds } = await useMultiFileAuthState("./session");
 
     const sock = makeWASocket({
-        printQRInTerminal: true,
         auth: state,
-        version
+        printQRInTerminal: true
     });
 
-    sock.ev.on('creds.update', saveCreds);
+    sock.ev.on("creds.update", saveCreds);
 
-    sock.ev.on('messages.upsert', async (msg) => {
-        try {
-            const m = msg.messages[0];
-            if (!m.message) return;
+    sock.ev.on("connection.update", ({ connection, lastDisconnect }) => {
+        if (connection === "close") {
+            const reason = lastDisconnect?.error?.output?.statusCode;
 
-            const from = m.key.remoteJid;
-            const text = m.message.conversation || m.message.extendedTextMessage?.text || "";
+            if (reason !== DisconnectReason.loggedOut) {
+                console.log("Reconectando...");
+                startBot();
+            } else {
+                console.log("La sesión se cerró. Escanea el QR de nuevo.");
+            }
+        }
+        if (connection === "open") {
+            console.log("Bot conectado correctamente.");
+        }
+    });
 
-            console.log("MENSAJE RECIBIDO:", text);
+    sock.ev.on("messages.upsert", async ({ messages }) => {
+        const msg = messages[0];
 
-            await sock.sendMessage(from, { text: "Hola 👋, soy el robot auditor de Frutiva." });
+        if (!msg.message || msg.key.fromMe) return;
 
-        } catch (e) {
-            console.error("ERROR:", e);
+        const from = msg.key.remoteJid;
+        let text = msg.message.conversation || "";
+
+        console.log("MENSAJE RECIBIDO:", text);
+
+        if (text.toLowerCase() === "hola") {
+            await sock.sendMessage(from, { text: "Hola 👋, soy el auditor de Frutiva." });
         }
     });
 }
 
-iniciar();
+startBot();
+
 
